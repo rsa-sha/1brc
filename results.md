@@ -152,3 +152,30 @@ City: Zurich | Min -> -99.9 | Max -> 99.9 | Avg -> 0.0310208
 ```
 
 </details>
+
+#### Issues found using perf
+- `std::unordered_map` operations accounted for `~50%` of the total runtime
+    - Reserving some amount of memory space like `~1K` to prevent rehashing as number of keys is bounded
+    - Test the performance of `map.find(city)` instead of `map[city]` as it could be faster
+---
+
+### Version 2
+
+Substituted `operator []` in `unordered_map`:
+```cpp
+    _data[city].tot += temp;
+    _data[city].min = _data[city].min > temp ? temp : _data[city].min;
+    _data[city].max = _data[city].max < temp ? temp : _data[city].max;
+    _data[city].count++;
+```
+with iterator and calling `find`:
+```cpp
+    auto it = _data.find(city);
+    if (it == _data.end()) {
+        auto [newItr, inserted] = _data.emplace(city, LocationData{temp, temp, temp, 1});
+        it = newItr;
+    }
+    it->second.update(temp);
+```
+
+Results are updated in [benchmark.md](./benchmark.md)

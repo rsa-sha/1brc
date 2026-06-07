@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <sys/mman.h>
 #include <unordered_map>
@@ -11,10 +12,17 @@
 const std::string DEFAULT_FILE = "measurements.txt";
 
 struct LocationData {
-	float	min;
-	float	max;
-	float	tot;
-	int		count;
+	float	min = std::numeric_limits<float>::max();
+	float	max = std::numeric_limits<float>::lowest();
+	float	tot = 0.0f;
+	int	count = 0;
+
+	inline void update (float temp) {
+		min = std::min(min, temp);
+		max = std::max(max, temp);
+		tot += temp;
+		count++;
+	}
 };
 
 class BRC {
@@ -54,10 +62,12 @@ public:
 			float temp = 0.0f;
 			auto [ptr, ec] = std::from_chars(temp_str.data(), temp_str.data() + temp_str.size(), temp);
 			if (ec ==  std::errc()) {
-				_data[city].tot += temp;
-				_data[city].min = _data[city].min > temp ? temp : _data[city].min;
-				_data[city].max = _data[city].max < temp ? temp : _data[city].max;
-				_data[city].count++;
+				auto it = _data.find(city);
+				if (it == _data.end()) {
+					auto [newItr, inserted] = _data.emplace(city, LocationData{temp, temp, temp, 1});
+					it = newItr;
+				}
+				it->second.update(temp);
 			}
 		}
 		return 0;
