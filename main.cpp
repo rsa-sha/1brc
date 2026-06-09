@@ -11,13 +11,26 @@
 
 const std::string DEFAULT_FILE = "measurements.txt";
 
+inline int parse_number(const char *st, const char *end) {
+	bool neg = (st[0]=='-' );
+	if (neg)++st;
+	int v = 0;
+	while (st < end) {
+		if (st[0] != '.')
+			v = v * 10 + (st[0]-'0');
+		st++;
+	}
+	return neg ? -v:v;
+
+}
+
 struct LocationData {
-	float	min = std::numeric_limits<float>::max();
-	float	max = std::numeric_limits<float>::lowest();
-	float	tot = 0.0f;
+	int	min = std::numeric_limits<int>::max();
+	int	max = std::numeric_limits<int>::lowest();
+	int	tot = 0;
 	int	count = 0;
 
-	inline void update (float temp) {
+	inline void update (int temp) {
 		min = std::min(min, temp);
 		max = std::max(max, temp);
 		tot += temp;
@@ -59,16 +72,19 @@ public:
 			char *val = p;
 			while (p < e && *p != '\n')++p;
 			std::string_view temp_str(val, p - val);
-			float temp = 0.0f;
+			int temp = 0;
+			/*
 			auto [ptr, ec] = std::from_chars(temp_str.data(), temp_str.data() + temp_str.size(), temp);
 			if (ec ==  std::errc()) {
-				auto it = _data.find(city);
-				if (it == _data.end()) {
-					auto [newItr, inserted] = _data.emplace(city, LocationData{temp, temp, temp, 1});
-					it = newItr;
-				}
-				it->second.update(temp);
+			*/
+			temp = parse_number(temp_str.data(), temp_str.data() + temp_str.size());
+			auto it = _data.find(city);
+			if (it == _data.end()) {
+				auto [newItr, inserted] = _data.emplace(city, LocationData{temp, temp, temp, 1});
+				it = newItr;
 			}
+			it->second.update(temp);
+			//}
 		}
 		return 0;
 	}
@@ -76,7 +92,7 @@ public:
 	// Dumping values
 	void display_all() {
 		for (auto &[city, location]: _data) {
-			std::cout << "City: " << city << " | Min -> " << location.min << " | Max -> " << location.max << " | Avg -> " << location.tot / location.count <<"\n";
+			std::cout << "City: " << city << " | Min -> " << location.min/10.0 << " | Max -> " << location.max/10.0 << " | Avg -> " << (location.tot / 10.0f) / location.count <<"\n";
 		}
 	}
 
@@ -88,7 +104,7 @@ public:
 		std::sort(locations.begin(), locations.end());
 		for (auto city: locations) {
 			LocationData location = _data[city];
-			std::cout << "City: " << city << " | Min -> " << location.min << " | Max -> " << location.max << " | Avg -> " << location.tot / location.count <<"\n";
+			std::cout << "City: " << city << " | Min -> " << location.min/10.0 << " | Max -> " << location.max/10.0 << " | Avg -> " << (location.tot / 10.0f) / location.count <<"\n";
 		}
 	}
 private:
